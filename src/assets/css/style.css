@@ -1,0 +1,60 @@
+.box {
+  margin: 50px;
+  position: relative;
+  display: flex;
+}
+
+.one {
+  height: 200px;
+  width: 200px;
+  position: relative;
+  display: flex;
+}
+
+.two {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  display: none;
+}
+
+.three{
+  height: 100%;
+  width: 100%;
+}
+
+.three img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  /* background-color: #ccc; */
+  border-radius: 20px;
+}
+
+.three video {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+
+.dragged{
+  position: absolute;
+  background-color: rgba(240, 240, 240, 0.6);
+  height: 100%;
+  width: 100%;
+  /* text-align: center;
+  justify-content: center;
+  align-items: center; */
+  display: flex !important;
+  color: black;
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 20px;
+}
+
+.four{
+  height: 200px;
+  width: 200px;
+  position: absolute;
+  cursor: pointer;
+}
