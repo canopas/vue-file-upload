@@ -11,6 +11,7 @@ node_modules
 .DS_Store
 /dist/*
 !/dist/output.css
+!/dist/style.scss
 dist-ssr
 coverage
 *.local
@@ -27,3 +28,5 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+src/assets/style.scss

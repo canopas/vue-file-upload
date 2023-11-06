@@ -18,10 +18,10 @@
     </div>
     <button
       type="button"
-      class="remove-btn bg-[#ccc] rounded-full h-7 dark:bg-stone-500 dark:text-white px-2.5"
+      class="remove-btn bg-[#ccc] h-7 rounded-full dark:bg-stone-500 dark:text-white px-2.5"
       @click="removeImg(k)"
     >
-      {{ removeBtn }}
+      {{ removeBtnText }}
     </button>
   </div>
 
@@ -48,13 +48,11 @@
       class="flex items-center justify-center bg-slate-700 dark:text-slate-300 dark:bg-blue-700 text-white flex-none py-3 px-8 rounded-full bottom-0 absolute disabled:opacity-70 disabled:cursor-not-allowed"
       :class="{ 'progress-bar cursor-wait': isUploading }"
       @click="uploadingFunction"
-      :disabled="files.length == 0"
+      :disabled="filesPreview.length == 0 ? (files.length == 0 ? true : false) : false"
     >
-      {{ isUploading ? progressBtn : uploadBtn }}
+      {{ isUploading ? progressBtnText : uploadBtnText }}
     </button>
   </div>
-
-  <div class="hidden" v-if="!isUploading ? removePreviewFiles() : ''"></div>
 </template>
 
 <script lang="ts">
@@ -66,25 +64,37 @@ import apkPreview from '../assets/images/apk-icon.png'
 import zipPreview from '../assets/images/zip-icon.png'
 import sqlPreview from '../assets/images/sql-icon.png'
 import filePreview from '../assets/images/file-icon.png'
+import type { PropType } from 'vue'
 
 export default {
-  emits: ['files', 'uploading'],
   props: {
-    removeBtn: {
+    accept: {
+      type: String
+    },
+    removeBtnText: {
       type: String,
       default: 'x'
     },
-    uploadBtn: {
+    uploadBtnText: {
       type: String,
       default: 'Upload'
     },
-    progressBtn: {
+    progressBtnText: {
       type: String,
       default: 'Uploading...'
     },
-    accept: String,
-    isUploading: {
-      type: Boolean,
+    uploadedFiles: {
+      type: Array as PropType<
+        Array<{
+          fileType: string
+          fileUrl: string
+          fileName: string
+        }>
+      >,
+      required: true
+    },
+    callback: {
+      type: Function,
       required: true
     },
     pdfPreview: {
@@ -118,9 +128,8 @@ export default {
   },
   data() {
     return {
-      flag: 0,
       isDragging: false,
-      isLoading: false,
+      isUploading: false,
       errorAlertVisible: false,
       errorMessage: 'Something went wrong',
       settingSavedSuccess: false,
@@ -129,24 +138,50 @@ export default {
         previewUrl: string | ArrayBuffer | null
         previewName: string
         isDragging: boolean
-        isLoading: boolean
       }>,
       files: [] as any
     }
   },
+  mounted() {
+    if (this.uploadedFiles) {
+      for (var i = 0; i < this.uploadedFiles.length; i++) {
+        this.filesPreview.push({
+          previewType: this.uploadedFiles[i].fileType,
+          previewUrl: this.uploadedFiles[i].fileUrl,
+          previewName: this.uploadedFiles[i].fileName,
+          isDragging: false
+        })
+        this.files.push({
+          fileType: this.uploadedFiles[i].fileType,
+          fileUrl: this.uploadedFiles[i].fileUrl,
+          fileName: this.uploadedFiles[i].fileName
+        })
+      }
+    }
+  },
   methods: {
-    removePreviewFiles() {
-      if (this.flag == 1) {
+    async uploadingFunction() {
+      if (this.files.length > 0) {
+        this.isUploading = true
+        await this.callback(this.files)
         this.filesPreview = []
         this.files = []
-        this.flag = 0
-      }
-    },
-    uploadingFunction() {
-      if (this.files.length > 0) {
-        this.$emit('files', this.files)
-        this.$emit('uploading', true)
-        this.flag = 1
+        if (this.uploadedFiles) {
+          for (var i = 0; i < this.uploadedFiles.length; i++) {
+            this.filesPreview.push({
+              previewType: this.uploadedFiles[i].fileType,
+              previewUrl: this.uploadedFiles[i].fileUrl,
+              previewName: this.uploadedFiles[i].fileName,
+              isDragging: false
+            })
+            this.files.push({
+              fileType: this.uploadedFiles[i].fileType,
+              fileUrl: this.uploadedFiles[i].fileUrl,
+              fileName: this.uploadedFiles[i].fileName
+            })
+          }
+        }
+        this.isUploading = false
       }
     },
     selectFile(index: number) {
@@ -171,15 +206,13 @@ export default {
       previewType: any,
       previewUrl: string | ArrayBuffer | null,
       previewName: string,
-      isDragging: boolean,
-      isLoading: boolean
+      isDragging: boolean
     ) {
       this.filesPreview.push({
         previewType: previewType,
         previewUrl: previewUrl,
         previewName: previewName,
-        isDragging: isDragging,
-        isLoading: isLoading
+        isDragging: isDragging
       })
     },
     update(
@@ -246,7 +279,7 @@ export default {
           this.update(obj.previewType, obj.previewUrl, obj.previewName, obj.isDragging, index)
           this.files[index] = file
         } else {
-          this.add(obj.previewType, obj.previewUrl, obj.previewName, obj.isDragging, false)
+          this.add(obj.previewType, obj.previewUrl, obj.previewName, obj.isDragging)
           this.files.push(file)
         }
       }
@@ -262,26 +295,16 @@ export default {
       event.preventDefault()
       if (action == 'reset') {
         this.filesPreview[index].isDragging = true
-        this.filesPreview[index].isLoading = true
-        setTimeout(() => {
-          this.filesPreview[index].isLoading = false
-        }, 500)
       } else {
         this.isDragging = true
-        this.isLoading = true
-        setTimeout(() => {
-          this.isLoading = false
-        }, 500)
       }
     },
     handleDragLeave(event: any, index: number, action: string) {
       event.preventDefault()
       if (action == 'reset') {
         this.filesPreview[index].isDragging = false
-        this.filesPreview[index].isLoading = false
       } else {
         this.isDragging = false
-        this.isLoading = false
       }
     },
     handleDrop(event: any, index: number, action: string) {
@@ -291,10 +314,8 @@ export default {
       event.preventDefault()
       if (action == 'reset') {
         this.filesPreview[index].isDragging = false
-        this.filesPreview[index].isLoading = false
       } else {
         this.isDragging = false
-        this.isLoading = false
       }
       const files = event.dataTransfer.files
       for (var i = 0; i < files.length; i++) {
@@ -310,69 +331,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-@mixin gradient-striped($color: rgba(255, 255, 255, 0.15), $angle: 45deg) {
-  background-image: -webkit-linear-gradient(
-    $angle,
-    $color 25%,
-    transparent 25%,
-    transparent 50%,
-    $color 50%,
-    $color 75%,
-    transparent 75%,
-    transparent
-  );
-  background-image: -o-linear-gradient(
-    $angle,
-    $color 25%,
-    transparent 25%,
-    transparent 50%,
-    $color 50%,
-    $color 75%,
-    transparent 75%,
-    transparent
-  );
-  background-image: linear-gradient(
-    $angle,
-    $color 25%,
-    transparent 25%,
-    transparent 50%,
-    $color 50%,
-    $color 75%,
-    transparent 75%,
-    transparent
-  );
-}
-
-@-webkit-keyframes progress-bar-stripes {
-  from {
-    background-position: 40px 0;
-  }
-  to {
-    background-position: 0 0;
-  }
-}
-
-@keyframes progress-bar-stripes {
-  from {
-    background-position: 40px 0;
-  }
-  to {
-    background-position: 0 0;
-  }
-}
-
-@mixin animation($animation) {
-  -webkit-animation: $animation;
-  -o-animation: $animation;
-  animation: $animation;
-}
-.progress.active .progress-bar {
-  @include animation(progress-bar-stripes 2s linear infinite);
-}
-.progress-striped .progress-bar {
-  @include gradient-striped;
-  background-size: 40px 40px;
-}
-</style>
