@@ -1,4 +1,5 @@
 import '../dist/output.css'
+import '../dist/style.scss'
 
 import SingleFileUpload from './components/SingleFile.vue'
 import MultipleFileUpload from './components/MultipleFile.vue'
